@@ -8,7 +8,10 @@ import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+
+import java.util.List;
 
 public final class ConfigManager {
 
@@ -132,6 +135,17 @@ public final class ConfigManager {
     public Component message(String path, TagResolver... resolvers) {
         String raw = plugin.getConfig().getString("messages." + path, path);
         return prefix.append(miniMessage.deserialize(raw, resolvers));
+    }
+
+    public void sendHelp(CommandSender sender) {
+        List<String> lines = plugin.getConfig().getStringList("messages.help");
+        if (lines.isEmpty()) {
+            sender.sendMessage(message("hint"));
+            return;
+        }
+        for (String line : lines) {
+            sender.sendMessage(prefix.append(miniMessage.deserialize(line)));
+        }
     }
 
     public String plainBroadcast(String player, int x, int y, int z, String world) {
