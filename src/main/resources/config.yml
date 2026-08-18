@@ -26,9 +26,10 @@ item:
 
 messages:
   prefix: "<dark_gray>[<gold>Spawn Cape</gold>]</dark_gray> "
-  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
+  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. Type <yellow>/cape off</yellow> to hide these messages."
   location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
   location-ground: "The Spawn Cape is at <x>, <y>, <z> in <world>."
+  hint: "Type <yellow>/cape off</yellow> to hide cape messages, or <yellow>/cape help</yellow> for more info."
   muted: "You will no longer see Spawn Cape broadcasts."
   unmuted: "You will now see Spawn Cape broadcasts."
   reloaded: "Spawn Cape config reloaded."
@@ -36,3 +37,16 @@ messages:
   returned: "The Spawn Cape returned to spawn."
   received: "You now hold the Spawn Cape."
   cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
+  help:
+    - "<gold><bold>Spawn Cape</bold></gold>"
+    - "There is only one. It sits at spawn until someone picks it up."
+    - "It locks into your offhand: fly like an elytra, right-click to boost without rockets, and gain +1 reach."
+    - "Overworld: if any axis is outside -1000 to 1000, it returns to spawn."
+    - "Nether: if any axis is outside -250 to 250, it returns to spawn."
+    - "End and other worlds: you can enter, but the cape returns to overworld spawn."
+    - "If you die, your killer gets it if they have inventory space. Logout also returns it."
+    - "Its location is broadcast every 5 minutes while someone holds it."
+    - "<yellow>/cape</yellow> — current location"
+    - "<yellow>/cape off</yellow> — hide broadcasts"
+    - "<yellow>/cape on</yellow> — show broadcasts again"
+    - "<yellow>/cape help</yellow> — this info"

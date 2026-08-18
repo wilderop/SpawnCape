@@ -22,11 +22,13 @@ public final class CapeCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
             plugin.capeManager().sendStatus(sender);
+            sender.sendMessage(plugin.config().message("hint"));
             return true;
         }
 
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
+            case "help" -> plugin.config().sendHelp(sender);
             case "off" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage("Players only.");
@@ -51,7 +53,7 @@ public final class CapeCommand implements CommandExecutor, TabCompleter {
                 plugin.config().reload();
                 sender.sendMessage(plugin.config().message("reloaded"));
             }
-            default -> sender.sendMessage("Usage: /cape [off|on|reload]");
+            default -> sender.sendMessage("Usage: /cape [help|off|on|reload]");
         }
         return true;
     }
@@ -60,7 +62,7 @@ public final class CapeCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase(Locale.ROOT);
-            return List.of("off", "on", "reload").stream()
+            return List.of("help", "off", "on", "reload").stream()
                     .filter(option -> option.startsWith(prefix))
                     .filter(option -> sender.isOp() || !option.equals("reload"))
                     .toList();

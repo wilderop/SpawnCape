@@ -10,5 +10,5 @@ folia-supported: false
 commands:
   cape:
     description: Show the Spawn Cape location, toggle broadcasts, or reload.
-    usage: /cape [off|on|reload]
+    usage: /cape [help|off|on|reload]
     aliases: [spawncape]
