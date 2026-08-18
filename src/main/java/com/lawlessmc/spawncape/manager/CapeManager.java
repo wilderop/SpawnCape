@@ -2,11 +2,16 @@ package com.lawlessmc.spawncape.manager;
 
 import com.lawlessmc.spawncape.SpawnCapePlugin;
 import net.kyori.adventure.text.Component;
+import org.bukkit.EntityEffect;
 import org.bukkit.Location;
+import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitTask;
@@ -176,6 +181,33 @@ public final class CapeManager {
         beginHold(killer);
         killer.sendMessage(plugin.config().message("received"));
         return true;
+    }
+
+    public void activateTotem(Player player, Player killer) {
+        if (!isHolder(player)) {
+            return;
+        }
+        applyTotemEffects(player);
+        player.sendMessage(plugin.config().message("totem"));
+        if (killer != null && !killer.getUniqueId().equals(player.getUniqueId())) {
+            tryTransferTo(killer);
+        } else {
+            returnCape("totem");
+        }
+    }
+
+    private void applyTotemEffects(Player player) {
+        var maxHealth = player.getAttribute(Attribute.MAX_HEALTH);
+        double cap = maxHealth == null ? 20.0 : maxHealth.getValue();
+        player.setHealth(Math.min(1.0, cap));
+        player.setAbsorptionAmount(4.0);
+        player.setFireTicks(0);
+        player.setFallDistance(0.0f);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 45 * 20, 1));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.ABSORPTION, 5 * 20, 1));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 40 * 20, 0));
+        player.playEffect(EntityEffect.TOTEM_RESURRECT);
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 1.0f, 1.0f);
     }
 
     public boolean canReceive(Player player) {
