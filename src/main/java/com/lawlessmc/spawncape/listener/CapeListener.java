@@ -3,10 +3,14 @@ package com.lawlessmc.spawncape.listener;
 import com.lawlessmc.spawncape.SpawnCapePlugin;
 import com.lawlessmc.spawncape.manager.CapeManager;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -132,6 +136,25 @@ public final class CapeListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFatalDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        if (!manager().isHolder(player)) {
+            return;
+        }
+        if (isUnavoidable(event.getCause())) {
+            return;
+        }
+        if (player.getHealth() - event.getFinalDamage() > 0.0) {
+            return;
+        }
+        event.setCancelled(true);
+        event.setDamage(0.0);
+        manager().activateTotem(player, resolveKiller(event, player));
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDeath(PlayerDeathEvent event) {
         Player victim = event.getEntity();
@@ -182,5 +205,36 @@ public final class CapeListener implements Listener {
             return;
         }
         plugin.getServer().getScheduler().runTask(plugin, () -> manager().ensureSpawnItem());
+    }
+
+    private static boolean isUnavoidable(EntityDamageEvent.DamageCause cause) {
+        return switch (cause) {
+            case VOID, KILL, SUICIDE, WORLD_BORDER -> true;
+            default -> false;
+        };
+    }
+
+    private static Player resolveKiller(EntityDamageEvent event, Player victim) {
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            Player fromDamager = playerFrom(byEntity.getDamager());
+            if (fromDamager != null && !fromDamager.getUniqueId().equals(victim.getUniqueId())) {
+                return fromDamager;
+            }
+        }
+        Player listed = victim.getKiller();
+        if (listed != null && !listed.getUniqueId().equals(victim.getUniqueId())) {
+            return listed;
+        }
+        return null;
+    }
+
+    private static Player playerFrom(Entity entity) {
+        if (entity instanceof Player player) {
+            return player;
+        }
+        if (entity instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
     }
 }
