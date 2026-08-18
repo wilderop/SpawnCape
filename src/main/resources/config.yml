@@ -36,6 +36,7 @@ messages:
   no-permission: "You must be an operator to do that."
   returned: "The Spawn Cape returned to spawn."
   received: "You now hold the Spawn Cape."
+  totem: "The Spawn Cape saved you like a totem."
   cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
   help:
     - "<gold><bold>Spawn Cape</bold></gold>"
@@ -44,7 +45,8 @@ messages:
     - "Overworld: if any axis is outside -1000 to 1000, it returns to spawn."
     - "Nether: if any axis is outside -250 to 250, it returns to spawn."
     - "End and other worlds: you can enter, but the cape returns to overworld spawn."
-    - "If you die, your killer gets it if they have inventory space. Logout also returns it."
+    - "If you would die, it pops like a totem and your killer gets the cape. Void and /kill still kill you."
+    - "Logout also returns it to spawn."
     - "Its location is broadcast every 5 minutes while someone holds it."
     - "<yellow>/cape</yellow> — current location"
     - "<yellow>/cape off</yellow> — hide broadcasts"
