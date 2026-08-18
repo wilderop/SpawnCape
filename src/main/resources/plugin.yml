@@ -1,0 +1,14 @@
+name: SpawnCape
+version: ${project.version}
+main: com.lawlessmc.spawncape.SpawnCapePlugin
+api-version: '26.2'
+description: Unique offhand Spawn Cape that broadcasts location and returns to spawn.
+author: wilderop
+website: https://github.com/wilderop/SpawnCape
+folia-supported: false
+
+commands:
+  cape:
+    description: Show the Spawn Cape location, toggle broadcasts, or reload.
+    usage: /cape [off|on|reload]
+    aliases: [spawncape]

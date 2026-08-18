@@ -1,0 +1,38 @@
+# Spawn Cape configuration
+
+overworld-name: world
+nether-name: world_nether
+
+return:
+  world: world
+  x: 0.5
+  y: 100.0
+  z: 0.5
+
+# Any single axis outside this range returns the cape.
+overworld-limit: 1000
+nether-limit: 250
+
+broadcast-interval-seconds: 300
+
+reach-bonus: 1.0
+
+discord-webhook: ""
+
+item:
+  name: "<gold><bold>Spawn Cape"
+  material: ELYTRA
+  glow: true
+
+messages:
+  prefix: "<dark_gray>[<gold>Spawn Cape</gold>]</dark_gray> "
+  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
+  location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
+  location-ground: "The Spawn Cape is at <x>, <y>, <z> in <world>."
+  muted: "You will no longer see Spawn Cape broadcasts."
+  unmuted: "You will now see Spawn Cape broadcasts."
+  reloaded: "Spawn Cape config reloaded."
+  no-permission: "You must be an operator to do that."
+  returned: "The Spawn Cape returned to spawn."
+  received: "You now hold the Spawn Cape."
+  cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
