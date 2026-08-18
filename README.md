@@ -24,7 +24,8 @@ A Paper 26.2 plugin that adds a single unique **Spawn Cape**. The cape lives in 
 
 | Command | Who | What |
 |---|---|---|
-| `/cape` | everyone | Current holder and coordinates, or spawn location if nobody has it |
+| `/cape` | everyone | Current location, plus a hint for `/cape off` and `/cape help` |
+| `/cape help` | everyone | How the cape works |
 | `/cape off` | players | Hide broadcasts |
 | `/cape on` | players | Show broadcasts again |
 | `/cape reload` | ops | Reload `config.yml` |
