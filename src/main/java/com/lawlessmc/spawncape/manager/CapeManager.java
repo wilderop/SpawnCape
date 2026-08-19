@@ -37,6 +37,7 @@ public final class CapeManager {
     private final SpawnCapePlugin plugin;
     private final CapeDataStore store;
     private BukkitTask tickTask;
+    private BukkitTask glideTask;
     private BukkitTask broadcastTask;
     private BukkitTask graceTask;
     private UUID holderId;
@@ -58,6 +59,7 @@ public final class CapeManager {
 
         plugin.getServer().getScheduler().runTaskLater(plugin, this::recoverState, 20L);
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        glideTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickGlide, 1L, 1L);
         broadcastTask = plugin.getServer().getScheduler().runTaskTimer(
                 plugin,
                 this::broadcastIfHeld,
@@ -76,6 +78,9 @@ public final class CapeManager {
         store.saveNow();
         if (tickTask != null) {
             tickTask.cancel();
+        }
+        if (glideTask != null) {
+            glideTask.cancel();
         }
         if (broadcastTask != null) {
             broadcastTask.cancel();
@@ -157,16 +162,13 @@ public final class CapeManager {
         Player previous = holder();
         UUID previousId = holderId;
         String previousName = previous != null ? previous.getName() : store.lastKnownName(previousId);
-
         if (previousId != null) {
             finishWear(previousId, previousName);
         }
-
         if (previous != null) {
             removeFromInventory(previous);
             previous.setGliding(false);
         }
-
         holderId = null;
         wearStartedMillis = 0L;
         store.saveHolder(null, 0L);
@@ -275,7 +277,6 @@ public final class CapeManager {
         double x = location.getX();
         double y = location.getY();
         double z = location.getZ();
-
         if (name.equals(plugin.config().overworldName())) {
             return exceeds(x, y, z, plugin.config().overworldLimit());
         }
@@ -291,7 +292,6 @@ public final class CapeManager {
             return;
         }
         lastBoostMillis = now;
-
         if (!player.isGliding()) {
             player.setGliding(true);
         }
@@ -367,7 +367,6 @@ public final class CapeManager {
             }
             return;
         }
-
         if (holderId != null) {
             if (graceTask != null) {
                 return;
@@ -375,7 +374,6 @@ public final class CapeManager {
             returnCape("holder offline");
             return;
         }
-
         Location spawn = plugin.config().returnLocation();
         World world = spawn.getWorld();
         if (world == null) {
@@ -404,7 +402,6 @@ public final class CapeManager {
             startGracePeriod();
             return;
         }
-
         holderId = null;
         wearStartedMillis = 0L;
         store.saveHolder(null, 0L);
@@ -470,9 +467,20 @@ public final class CapeManager {
         return null;
     }
 
+    public boolean shouldKeepGliding(Player player) {
+        return !player.isOnGround() && !player.isInWater() && !player.isSwimming();
+    }
+
     private void applyGlide(Player player) {
-        if (!player.isOnGround() && !player.isInWater() && !player.isGliding()) {
+        if (shouldKeepGliding(player) && !player.isGliding()) {
             player.setGliding(true);
+        }
+    }
+
+    private void tickGlide() {
+        Player holder = holder();
+        if (holder != null) {
+            applyGlide(holder);
         }
     }
 
@@ -492,14 +500,12 @@ public final class CapeManager {
         if (findTrackedGroundItem() != null) {
             return;
         }
-
         Location location = plugin.config().returnLocation();
         World world = location.getWorld();
         if (world == null) {
             plugin.getLogger().warning("Return world is not loaded; cannot drop Spawn Cape.");
             return;
         }
-
         dropQueued = true;
         world.getChunkAtAsync(location).thenAccept(chunk -> plugin.getServer().getScheduler().runTask(plugin, () -> {
             dropQueued = false;
