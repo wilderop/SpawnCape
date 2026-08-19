@@ -37,6 +37,9 @@ public final class ConfigManager {
     private String broadcastTemplate;
     private long rebootGraceSeconds;
     private Component keepsakeName;
+    private long holdRewardIntervalSeconds;
+    private int holdRewardAmount;
+    private Material holdRewardMaterial;
 
     public ConfigManager(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -71,6 +74,10 @@ public final class ConfigManager {
         );
         rebootGraceSeconds = Math.max(0L, cfg.getLong("reboot-grace-seconds", 300L));
         keepsakeName = miniMessage.deserialize(cfg.getString("keepsake-name", "<gold>Spawn Cape Keepsake"));
+        holdRewardIntervalSeconds = Math.max(0L, cfg.getLong("hold-reward.interval-seconds", 60L));
+        holdRewardAmount = Math.max(0, cfg.getInt("hold-reward.amount", 2));
+        Material reward = Material.matchMaterial(cfg.getString("hold-reward.material", "OBSIDIAN"));
+        holdRewardMaterial = reward == null ? Material.OBSIDIAN : reward;
     }
 
     public String overworldName() {
@@ -142,6 +149,18 @@ public final class ConfigManager {
 
     public Component keepsakeName() {
         return keepsakeName;
+    }
+
+    public long holdRewardIntervalSeconds() {
+        return holdRewardIntervalSeconds;
+    }
+
+    public int holdRewardAmount() {
+        return holdRewardAmount;
+    }
+
+    public Material holdRewardMaterial() {
+        return holdRewardMaterial;
     }
 
     public Component message(String path, TagResolver... resolvers) {
