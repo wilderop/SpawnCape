@@ -7,7 +7,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,6 +27,7 @@ public final class CapeDataStore {
 
     private UUID groundItemId;
     private WearRecord cachedLongest;
+    private final Map<UUID, Set<Long>> awarded = new HashMap<>();
 
     public CapeDataStore(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -44,6 +48,17 @@ public final class CapeDataStore {
         }
         groundItemId = parseUuid(yaml.getString("ground-item"));
         cachedLongest = readLongestFromYaml();
+        awarded.clear();
+        var wearSection = yaml.getConfigurationSection("wear");
+        if (wearSection != null) {
+            for (String key : wearSection.getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(key);
+                    awarded.put(uuid, new HashSet<>(yaml.getLongList("wear." + key + ".awarded")));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+        }
     }
 
     public UUID holder() {
@@ -97,6 +112,23 @@ public final class CapeDataStore {
 
     public WearRecord longest() {
         return cachedLongest;
+    }
+
+    public boolean hasAwarded(UUID uuid, long seconds) {
+        Set<Long> set = awarded.get(uuid);
+        return set != null && set.contains(seconds);
+    }
+
+    public void markAwarded(UUID uuid, long seconds) {
+        if (uuid == null) {
+            return;
+        }
+        Set<Long> set = awarded.computeIfAbsent(uuid, ignored -> new HashSet<>());
+        if (!set.add(seconds)) {
+            return;
+        }
+        yaml.set("wear." + uuid + ".awarded", new ArrayList<>(set));
+        queueSave();
     }
 
     public boolean isMuted(UUID uuid) {
