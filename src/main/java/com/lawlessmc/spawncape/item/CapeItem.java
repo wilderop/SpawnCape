@@ -19,15 +19,18 @@ import java.util.List;
 public final class CapeItem {
 
     public static final String KEY_NAME = "spawn_cape";
+    public static final String KEEPSAKE_KEY_NAME = "spawn_cape_keepsake";
 
     private final SpawnCapePlugin plugin;
     private final NamespacedKey key;
+    private final NamespacedKey keepsakeKey;
     private final NamespacedKey reachBlockKey;
     private final NamespacedKey reachEntityKey;
 
     public CapeItem(SpawnCapePlugin plugin) {
         this.plugin = plugin;
         this.key = new NamespacedKey(plugin, KEY_NAME);
+        this.keepsakeKey = new NamespacedKey(plugin, KEEPSAKE_KEY_NAME);
         this.reachBlockKey = new NamespacedKey(plugin, "cape_block_reach");
         this.reachEntityKey = new NamespacedKey(plugin, "cape_entity_reach");
     }
@@ -51,9 +54,35 @@ public final class CapeItem {
         return meta.getPersistentDataContainer().has(key, PersistentDataType.BYTE);
     }
 
+    public boolean isKeepsake(ItemStack stack) {
+        if (stack == null) {
+            return false;
+        }
+        Material type = stack.getType();
+        if (type.isAir() || type != plugin.config().itemMaterial()) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        return meta.getPersistentDataContainer().has(keepsakeKey, PersistentDataType.BYTE);
+    }
+
     public ItemStack create() {
         ItemStack stack = new ItemStack(plugin.config().itemMaterial());
         applyMeta(stack);
+        return stack;
+    }
+
+    public ItemStack createKeepsake(String playerName, String durationLabel, String date) {
+        ItemStack stack = new ItemStack(plugin.config().itemMaterial());
+        String lore = playerName + " held the spawn cape for " + durationLabel + " on " + date + "!";
+        stack.editMeta(meta -> {
+            meta.getPersistentDataContainer().set(keepsakeKey, PersistentDataType.BYTE, (byte) 1);
+            meta.displayName(plugin.config().keepsakeName().decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(Component.text(lore, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
+        });
         return stack;
     }
 
@@ -68,7 +97,6 @@ public final class CapeItem {
             try {
                 meta.setGlider(true);
             } catch (Throwable ignored) {
-                // Older API without the glider component.
             }
 
             double bonus = plugin.config().reachBonus();
