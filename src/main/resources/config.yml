@@ -25,6 +25,12 @@ reboot-grace-seconds: 300
 
 keepsake-name: "<gold>Spawn Cape Keepsake"
 
+# Given every interval-seconds the current holder keeps the cape.
+hold-reward:
+  interval-seconds: 60
+  amount: 2
+  material: OBSIDIAN
+
 item:
   name: "<gold><bold>Spawn Cape"
   material: ELYTRA
@@ -56,6 +62,7 @@ messages:
     - "If you would die, it pops like a totem and your killer gets the cape. Void and /kill still kill you."
     - "Logout also returns it to spawn. A reboot gives you 5 minutes to rejoin and keep your hold time."
     - "Hold it long enough to earn a cosmetic Spawn Cape Keepsake for each milestone, once each."
+    - "Every minute you hold it, you get 2 obsidian. Extra drops at your feet if your inventory is full."
     - "Its location is broadcast every 5 minutes while someone holds it."
     - "<yellow>/cape</yellow> — current location"
     - "<yellow>/cape off</yellow> — hide broadcasts"
