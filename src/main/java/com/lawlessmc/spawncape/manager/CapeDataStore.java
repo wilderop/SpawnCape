@@ -159,10 +159,18 @@ public final class CapeDataStore {
     }
 
     private void queueSave() {
+        if (!plugin.isEnabled()) {
+            saveNow();
+            return;
+        }
         if (!saveQueued.compareAndSet(false, true)) {
             return;
         }
         plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (!plugin.isEnabled()) {
+                saveNow();
+                return;
+            }
             final String data = yaml.saveToString();
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
