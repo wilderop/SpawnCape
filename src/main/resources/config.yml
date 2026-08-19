@@ -19,6 +19,12 @@ reach-bonus: 1.0
 
 discord-webhook: ""
 
+# After a reboot/crash, the last holder can reclaim the cape this many seconds
+# after the plugin enables and keep their current hold timer.
+reboot-grace-seconds: 300
+
+keepsake-name: "<gold>Spawn Cape Keepsake"
+
 item:
   name: "<gold><bold>Spawn Cape"
   material: ELYTRA
@@ -37,6 +43,8 @@ messages:
   returned: "The Spawn Cape returned to spawn."
   received: "You now hold the Spawn Cape."
   totem: "The Spawn Cape saved you like a totem."
+  keepsake: "You earned a Spawn Cape Keepsake for holding it for <duration>."
+  grace-restored: "The Spawn Cape returned to you after the restart."
   cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
   help:
     - "<gold><bold>Spawn Cape</bold></gold>"
@@ -46,7 +54,8 @@ messages:
     - "Nether: if any axis is outside -250 to 250, it returns to spawn."
     - "End and other worlds: you can enter, but the cape returns to overworld spawn."
     - "If you would die, it pops like a totem and your killer gets the cape. Void and /kill still kill you."
-    - "Logout also returns it to spawn."
+    - "Logout also returns it to spawn. A reboot gives you 5 minutes to rejoin and keep your hold time."
+    - "Hold it long enough to earn a cosmetic Spawn Cape Keepsake for each milestone, once each."
     - "Its location is broadcast every 5 minutes while someone holds it."
     - "<yellow>/cape</yellow> — current location"
     - "<yellow>/cape off</yellow> — hide broadcasts"
