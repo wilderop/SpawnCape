@@ -35,6 +35,8 @@ public final class ConfigManager {
     private boolean itemGlow;
     private Component prefix;
     private String broadcastTemplate;
+    private long rebootGraceSeconds;
+    private Component keepsakeName;
 
     public ConfigManager(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -67,6 +69,8 @@ public final class ConfigManager {
                 "messages.broadcast",
                 "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
         );
+        rebootGraceSeconds = Math.max(0L, cfg.getLong("reboot-grace-seconds", 300L));
+        keepsakeName = miniMessage.deserialize(cfg.getString("keepsake-name", "<gold>Spawn Cape Keepsake"));
     }
 
     public String overworldName() {
@@ -130,6 +134,14 @@ public final class ConfigManager {
 
     public Component prefix() {
         return prefix;
+    }
+
+    public long rebootGraceSeconds() {
+        return rebootGraceSeconds;
+    }
+
+    public Component keepsakeName() {
+        return keepsakeName;
     }
 
     public Component message(String path, TagResolver... resolvers) {
