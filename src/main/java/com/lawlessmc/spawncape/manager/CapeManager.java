@@ -45,6 +45,7 @@ public final class CapeManager {
     private UUID groundItemId;
     private boolean dropQueued;
     private long lastBoostMillis;
+    private long holdRewardPayouts;
 
     public CapeManager(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -154,6 +155,7 @@ public final class CapeManager {
         clearGroundTracking();
         holderId = player.getUniqueId();
         wearStartedMillis = System.currentTimeMillis();
+        holdRewardPayouts = 0L;
         store.saveHolder(holderId, wearStartedMillis);
         applyGlide(player);
     }
@@ -171,6 +173,7 @@ public final class CapeManager {
         }
         holderId = null;
         wearStartedMillis = 0L;
+        holdRewardPayouts = 0L;
         store.saveHolder(null, 0L);
         removeTrackedGroundItem();
         dropAtSpawn();
@@ -362,6 +365,7 @@ public final class CapeManager {
             enforceOffhand(holder);
             applyGlide(holder);
             awardMilestones(holder);
+            awardHoldReward(holder);
             if (isOutOfBounds(holder.getLocation())) {
                 returnCape("out of bounds");
             }
@@ -436,6 +440,11 @@ public final class CapeManager {
         clearGroundTracking();
         enforceOffhand(player);
         store.saveHolder(holderId, wearStartedMillis);
+        long interval = plugin.config().holdRewardIntervalSeconds();
+        if (interval > 0L && wearStartedMillis > 0L) {
+            long elapsed = Math.max(0L, (System.currentTimeMillis() - wearStartedMillis) / 1000L);
+            holdRewardPayouts = elapsed / interval;
+        }
         awardMilestones(player);
         if (announce) {
             player.sendMessage(plugin.config().message("grace-restored"));
@@ -608,6 +617,33 @@ public final class CapeManager {
         ItemStack cursor = player.getItemOnCursor();
         if (plugin.capeItem().isCape(cursor)) {
             player.setItemOnCursor(null);
+        }
+    }
+
+    public void awardHoldReward(Player player) {
+        if (player == null || wearStartedMillis <= 0L) {
+            return;
+        }
+        long interval = plugin.config().holdRewardIntervalSeconds();
+        int amount = plugin.config().holdRewardAmount();
+        if (interval <= 0L || amount <= 0) {
+            return;
+        }
+        long elapsed = Math.max(0L, (System.currentTimeMillis() - wearStartedMillis) / 1000L);
+        long due = elapsed / interval;
+        if (due <= holdRewardPayouts) {
+            return;
+        }
+        long times = due - holdRewardPayouts;
+        holdRewardPayouts = due;
+        int total = (int) Math.min(times * (long) amount, 64L * 27L);
+        ItemStack stack = new ItemStack(plugin.config().holdRewardMaterial(), total);
+        var leftover = player.getInventory().addItem(stack);
+        for (ItemStack extra : leftover.values()) {
+            if (extra == null || extra.getType().isAir()) {
+                continue;
+            }
+            player.getWorld().dropItemNaturally(player.getLocation(), extra);
         }
     }
 
