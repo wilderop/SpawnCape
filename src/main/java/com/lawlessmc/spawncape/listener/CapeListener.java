@@ -4,6 +4,7 @@ import com.lawlessmc.spawncape.SpawnCapePlugin;
 import com.lawlessmc.spawncape.manager.CapeManager;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
@@ -12,6 +13,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.ItemDespawnEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -174,21 +177,44 @@ public final class CapeListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        if (manager().isHolder(event.getPlayer())) {
-            manager().returnCape("logout");
+        if (!manager().isHolder(event.getPlayer())) {
+            return;
         }
+        if (plugin.getServer().isStopping()) {
+            manager().saveForReboot();
+            return;
+        }
+        manager().returnCape("logout");
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Player player = event.getPlayer();
+            if (manager().tryRestoreAfterReboot(player)) {
+                return;
+            }
             if (manager().isHolder(player)) {
                 manager().enforceOffhand(player);
             } else if (manager().findCapeInInventory(player) != null) {
                 manager().removeFromInventory(player);
             }
         });
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onItemSpawn(ItemSpawnEvent event) {
+        Item item = event.getEntity();
+        if (plugin.capeItem().isKeepsake(item.getItemStack())) {
+            manager().styleKeepsakeItem(item);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onItemDespawn(ItemDespawnEvent event) {
+        if (plugin.capeItem().isKeepsake(event.getEntity().getItemStack())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler
