@@ -2,6 +2,7 @@ package com.lawlessmc.spawncape.manager;
 
 import com.lawlessmc.spawncape.SpawnCapePlugin;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -16,14 +17,28 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public final class CapeManager {
+
+    public record Milestone(long seconds, String label) {}
+
+    private static final DateTimeFormatter KEEPSAKE_DATE =
+            DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
+    private static final long WEEK_SECONDS = 7L * 24L * 60L * 60L;
+    private static final long YEAR_SECONDS = 52L * WEEK_SECONDS;
+    private static final List<Milestone> MILESTONES = buildMilestones();
 
     private final SpawnCapePlugin plugin;
     private final CapeDataStore store;
     private BukkitTask tickTask;
     private BukkitTask broadcastTask;
+    private BukkitTask graceTask;
     private UUID holderId;
     private long wearStartedMillis;
     private UUID groundItemId;
@@ -52,16 +67,11 @@ public final class CapeManager {
     }
 
     public void shutdown() {
-        if (holderId != null) {
-            Player holder = plugin.getServer().getPlayer(holderId);
-            if (holder != null) {
-                returnCape("plugin disable");
-            } else {
-                store.saveHolder(holderId, wearStartedMillis);
-            }
-        } else {
-            store.saveHolder(null, 0L);
+        if (graceTask != null) {
+            graceTask.cancel();
+            graceTask = null;
         }
+        store.saveHolder(holderId, wearStartedMillis);
         store.setGroundItemId(groundItemId);
         store.saveNow();
         if (tickTask != null) {
@@ -70,6 +80,12 @@ public final class CapeManager {
         if (broadcastTask != null) {
             broadcastTask.cancel();
         }
+    }
+
+    public void saveForReboot() {
+        store.saveHolder(holderId, wearStartedMillis);
+        store.setGroundItemId(groundItemId);
+        store.saveNow();
     }
 
     public CapeDataStore store() {
@@ -345,6 +361,7 @@ public final class CapeManager {
         if (holder != null) {
             enforceOffhand(holder);
             applyGlide(holder);
+            awardMilestones(holder);
             if (isOutOfBounds(holder.getLocation())) {
                 returnCape("out of bounds");
             }
@@ -352,6 +369,9 @@ public final class CapeManager {
         }
 
         if (holderId != null) {
+            if (graceTask != null) {
+                return;
+            }
             returnCape("holder offline");
             return;
         }
@@ -370,27 +390,75 @@ public final class CapeManager {
     }
 
     private void recoverState() {
-        Player onlineHolder = findOnlineHolder();
+        UUID saved = store.holder();
+        Player onlineHolder = saved != null ? plugin.getServer().getPlayer(saved) : findOnlineHolder();
+        if (onlineHolder == null) {
+            onlineHolder = findOnlineHolder();
+        }
         if (onlineHolder != null) {
-            holderId = onlineHolder.getUniqueId();
-            if (wearStartedMillis <= 0L) {
-                wearStartedMillis = System.currentTimeMillis();
-            }
-            clearGroundTracking();
-            enforceOffhand(onlineHolder);
-            store.saveHolder(holderId, wearStartedMillis);
+            restoreSession(onlineHolder, false);
+            return;
+        }
+        if (saved != null && plugin.config().rebootGraceSeconds() > 0L) {
+            holderId = saved;
+            startGracePeriod();
             return;
         }
 
         holderId = null;
         wearStartedMillis = 0L;
         store.saveHolder(null, 0L);
-
         removeCapeItemsInSpawnChunk();
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             removeFromInventory(player);
         }
         dropAtSpawn();
+    }
+
+    public boolean tryRestoreAfterReboot(Player player) {
+        UUID saved = holderId != null ? holderId : store.holder();
+        if (saved == null || !saved.equals(player.getUniqueId())) {
+            return false;
+        }
+        restoreSession(player, true);
+        return true;
+    }
+
+    private void restoreSession(Player player, boolean announce) {
+        if (graceTask != null) {
+            graceTask.cancel();
+            graceTask = null;
+        }
+        holderId = player.getUniqueId();
+        if (wearStartedMillis <= 0L) {
+            wearStartedMillis = store.wearStartedMillis();
+        }
+        if (wearStartedMillis <= 0L) {
+            wearStartedMillis = System.currentTimeMillis();
+        }
+        clearGroundTracking();
+        enforceOffhand(player);
+        store.saveHolder(holderId, wearStartedMillis);
+        awardMilestones(player);
+        if (announce) {
+            player.sendMessage(plugin.config().message("grace-restored"));
+        }
+    }
+
+    private void startGracePeriod() {
+        if (graceTask != null) {
+            graceTask.cancel();
+        }
+        long ticks = Math.max(20L, plugin.config().rebootGraceSeconds() * 20L);
+        plugin.getLogger().info("Waiting " + plugin.config().rebootGraceSeconds()
+                + "s for the Spawn Cape holder to rejoin.");
+        graceTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            graceTask = null;
+            if (holder() != null) {
+                return;
+            }
+            returnCape("reboot grace expired");
+        }, ticks);
     }
 
     private Player findOnlineHolder() {
@@ -535,6 +603,73 @@ public final class CapeManager {
         if (plugin.capeItem().isCape(cursor)) {
             player.setItemOnCursor(null);
         }
+    }
+
+    public void awardMilestones(Player player) {
+        if (player == null || wearStartedMillis <= 0L) {
+            return;
+        }
+        long elapsed = Math.max(0L, (System.currentTimeMillis() - wearStartedMillis) / 1000L);
+        for (Milestone milestone : MILESTONES) {
+            tryAward(player, elapsed, milestone);
+        }
+        if (elapsed >= YEAR_SECONDS * 2L) {
+            long maxYear = elapsed / YEAR_SECONDS;
+            for (long year = 2L; year <= maxYear; year++) {
+                tryAward(player, elapsed, new Milestone(year * YEAR_SECONDS, year + " years"));
+            }
+        }
+    }
+
+    private void tryAward(Player player, long elapsed, Milestone milestone) {
+        if (elapsed < milestone.seconds()) {
+            return;
+        }
+        if (store.hasAwarded(player.getUniqueId(), milestone.seconds())) {
+            return;
+        }
+        store.markAwarded(player.getUniqueId(), milestone.seconds());
+        giveKeepsake(player, milestone.label());
+    }
+
+    private void giveKeepsake(Player player, String durationLabel) {
+        String date = LocalDate.now().format(KEEPSAKE_DATE).toUpperCase(Locale.ENGLISH);
+        ItemStack keepsake = plugin.capeItem().createKeepsake(player.getName(), durationLabel, date);
+        PlayerInventory inventory = player.getInventory();
+        int empty = inventory.firstEmpty();
+        if (empty != -1) {
+            inventory.setItem(empty, keepsake);
+        } else {
+            Item dropped = player.getWorld().dropItemNaturally(player.getLocation(), keepsake);
+            styleKeepsakeItem(dropped);
+        }
+        player.sendMessage(plugin.config().message(
+                "keepsake",
+                Placeholder.unparsed("duration", durationLabel)
+        ));
+    }
+
+    public void styleKeepsakeItem(Item item) {
+        item.setUnlimitedLifetime(true);
+        item.setInvulnerable(true);
+        item.setPersistent(true);
+        item.setCanMobPickup(false);
+        item.setPickupDelay(0);
+    }
+
+    private static List<Milestone> buildMilestones() {
+        List<Milestone> list = new ArrayList<>();
+        list.add(new Milestone(60L, "1 minute"));
+        list.add(new Milestone(3600L, "1 hour"));
+        list.add(new Milestone(6L * 3600L, "6 hours"));
+        list.add(new Milestone(12L * 3600L, "12 hours"));
+        list.add(new Milestone(24L * 3600L, "24 hours"));
+        list.add(new Milestone(WEEK_SECONDS, "1 week"));
+        for (int week = 2; week <= 51; week++) {
+            list.add(new Milestone(week * WEEK_SECONDS, week + " weeks"));
+        }
+        list.add(new Milestone(YEAR_SECONDS, "1 year"));
+        return List.copyOf(list);
     }
 
     public static String formatDuration(long totalSeconds) {
