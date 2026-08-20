@@ -18,6 +18,7 @@ import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
@@ -84,24 +85,53 @@ public final class CapeListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
         ItemStack current = event.getCurrentItem();
         ItemStack cursor = event.getCursor();
-        if (plugin.capeItem().isCape(current) || plugin.capeItem().isCape(cursor)) {
-            event.setCancelled(true);
-        }
-        if (event.getHotbarButton() >= 0 && event.getWhoClicked() instanceof Player player) {
+        boolean blocked = plugin.capeItem().isCape(current) || plugin.capeItem().isCape(cursor);
+        if (event.getHotbarButton() >= 0) {
             ItemStack hotbar = player.getInventory().getItem(event.getHotbarButton());
-            if (plugin.capeItem().isCape(hotbar)) {
-                event.setCancelled(true);
-            }
+            blocked = blocked || plugin.capeItem().isCape(hotbar);
         }
+        if (event.getClick().name().equals("SWAP_OFFHAND")
+                && plugin.capeItem().isCape(player.getInventory().getItemInOffHand())) {
+            blocked = true;
+        }
+        if (!blocked) {
+            return;
+        }
+        event.setCancelled(true);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            manager().stripCapeFromEnderChest(player);
+            if (manager().isHolder(player)) {
+                manager().enforceOffhand(player);
+            }
+            player.updateInventory();
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDrag(InventoryDragEvent event) {
-        if (plugin.capeItem().isCape(event.getOldCursor()) || plugin.capeItem().isCape(event.getCursor())) {
-            event.setCancelled(true);
+        if (!plugin.capeItem().isCape(event.getOldCursor()) && !plugin.capeItem().isCape(event.getCursor())) {
+            return;
         }
+        event.setCancelled(true);
+        if (event.getWhoClicked() instanceof Player player) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                manager().stripCapeFromEnderChest(player);
+                player.updateInventory();
+            });
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        manager().stripCapeFromEnderChest(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -205,6 +235,7 @@ public final class CapeListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             Player player = event.getPlayer();
+            manager().stripCapeFromEnderChest(player);
             if (manager().tryRestoreAfterReboot(player)) {
                 return;
             }
