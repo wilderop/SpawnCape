@@ -366,6 +366,7 @@ public final class CapeManager {
             applyGlide(holder);
             awardMilestones(holder);
             awardHoldReward(holder);
+            stripCapeFromEnderChest(holder);
             if (isOutOfBounds(holder.getLocation())) {
                 returnCape("out of bounds");
             }
@@ -617,6 +618,24 @@ public final class CapeManager {
         ItemStack cursor = player.getItemOnCursor();
         if (plugin.capeItem().isCape(cursor)) {
             player.setItemOnCursor(null);
+        }
+        stripCapeFromEnderChest(player);
+    }
+
+    public void stripCapeFromEnderChest(Player player) {
+        if (player == null) {
+            return;
+        }
+        var ender = player.getEnderChest();
+        boolean changed = false;
+        for (int i = 0; i < ender.getSize(); i++) {
+            if (plugin.capeItem().isCape(ender.getItem(i))) {
+                ender.setItem(i, null);
+                changed = true;
+            }
+        }
+        if (changed) {
+            player.updateInventory();
         }
     }
 
