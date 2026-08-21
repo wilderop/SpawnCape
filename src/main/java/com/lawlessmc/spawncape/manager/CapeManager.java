@@ -110,6 +110,13 @@ public final class CapeManager {
         return holderId != null && holderId.equals(player.getUniqueId());
     }
 
+    public long currentHoldSeconds() {
+        if (wearStartedMillis <= 0L) {
+            return 0L;
+        }
+        return Math.max(0L, (System.currentTimeMillis() - wearStartedMillis) / 1000L);
+    }
+
     public boolean isMuted(UUID uuid) {
         return store.isMuted(uuid);
     }
@@ -313,16 +320,18 @@ public final class CapeManager {
             return;
         }
         Location loc = holder.getLocation();
+        String duration = formatDuration(currentHoldSeconds());
         Component message = plugin.config().message(
                 "broadcast",
-                plugin.config().locationResolvers(holder.getName(), loc)
+                plugin.config().locationResolvers(holder.getName(), loc, duration)
         );
         String plain = plugin.config().plainBroadcast(
                 holder.getName(),
                 loc.getBlockX(),
                 loc.getBlockY(),
                 loc.getBlockZ(),
-                loc.getWorld() == null ? "unknown" : loc.getWorld().getName()
+                loc.getWorld() == null ? "unknown" : loc.getWorld().getName(),
+                duration
         );
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             if (!isMuted(player.getUniqueId())) {
@@ -338,7 +347,7 @@ public final class CapeManager {
         if (holder != null) {
             viewer.sendMessage(plugin.config().message(
                     "location-held",
-                    plugin.config().locationResolvers(holder.getName(), holder.getLocation())
+                    plugin.config().locationResolvers(holder.getName(), holder.getLocation(), formatDuration(currentHoldSeconds()))
             ));
             return;
         }
