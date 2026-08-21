@@ -496,10 +496,38 @@ public final class CapeManager {
         }
     }
 
+    private boolean isJumping(Player player) {
+        try {
+            return player.getCurrentInput().isJump();
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    private boolean needsAssist(Player player) {
+        return shouldKeepGliding(player)
+                && !player.isGliding()
+                && player.getVelocity().getY() < -0.4
+                && plugin.getServer().getCurrentTick() % 20 == 0;
+    }
+
     private void tickGlide() {
         Player holder = holder();
-        if (holder != null) {
-            applyGlide(holder);
+        if (holder == null) {
+            return;
+        }
+        switch (plugin.config().glideMode()) {
+            case JUMP -> {
+                if (isJumping(holder)) {
+                    applyGlide(holder);
+                }
+            }
+            case ASSIST -> {
+                if (isJumping(holder) || needsAssist(holder)) {
+                    applyGlide(holder);
+                }
+            }
+            case FORCE -> applyGlide(holder);
         }
     }
 
