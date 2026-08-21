@@ -749,17 +749,7 @@ public final class CapeManager {
         long hours = seconds / 3600;
         seconds %= 3600;
         long minutes = seconds / 60;
-        seconds %= 60;
-        if (days > 0) {
-            return days + "d " + hours + "h";
-        }
-        if (hours > 0) {
-            return hours + "h " + minutes + "m";
-        }
-        if (minutes > 0) {
-            return minutes + "m";
-        }
-        return seconds + "s";
+        return days + "d " + hours + "h " + minutes + "m";
     }
 
     private static boolean exceeds(double x, double y, double z, double limit) {
