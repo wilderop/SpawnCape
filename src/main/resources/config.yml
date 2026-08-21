@@ -38,8 +38,8 @@ item:
 
 messages:
   prefix: "<dark_gray>[<gold>Spawn Cape</gold>]</dark_gray> "
-  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. Type <yellow>/cape off</yellow> to hide these messages."
-  location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
+  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>. Type <yellow>/cape off</yellow> to hide these messages."
+  location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>."
   location-ground: "The Spawn Cape is at <x>, <y>, <z> in <world>."
   hint: "Type <yellow>/cape off</yellow> to hide cape messages, or <yellow>/cape help</yellow> for more info."
   muted: "You will no longer see Spawn Cape broadcasts."
