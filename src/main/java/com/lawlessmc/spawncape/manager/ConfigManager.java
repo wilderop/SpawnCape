@@ -40,6 +40,7 @@ public final class ConfigManager {
     private long holdRewardIntervalSeconds;
     private int holdRewardAmount;
     private Material holdRewardMaterial;
+    private GlideMode glideMode;
 
     public ConfigManager(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -78,6 +79,8 @@ public final class ConfigManager {
         holdRewardAmount = Math.max(0, cfg.getInt("hold-reward.amount", 2));
         Material reward = Material.matchMaterial(cfg.getString("hold-reward.material", "OBSIDIAN"));
         holdRewardMaterial = reward == null ? Material.OBSIDIAN : reward;
+        GlideMode parsed = GlideMode.parse(cfg.getString("glide-mode", "force"));
+        glideMode = parsed == null ? GlideMode.FORCE : parsed;
     }
 
     public String overworldName() {
@@ -161,6 +164,16 @@ public final class ConfigManager {
 
     public Material holdRewardMaterial() {
         return holdRewardMaterial;
+    }
+
+    public GlideMode glideMode() {
+        return glideMode;
+    }
+
+    public void setGlideMode(GlideMode mode) {
+        this.glideMode = mode == null ? GlideMode.FORCE : mode;
+        plugin.getConfig().set("glide-mode", glideMode.configName());
+        plugin.saveConfig();
     }
 
     public Component message(String path, TagResolver... resolvers) {
