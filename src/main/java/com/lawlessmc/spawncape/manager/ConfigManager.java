@@ -179,23 +179,29 @@ public final class ConfigManager {
         }
     }
 
-    public String plainBroadcast(String player, int x, int y, int z, String world) {
+    public String plainBroadcast(String player, int x, int y, int z, String world, String duration) {
         return broadcastTemplate
                 .replace("<player>", player)
                 .replace("<x>", Integer.toString(x))
                 .replace("<y>", Integer.toString(y))
                 .replace("<z>", Integer.toString(z))
                 .replace("<world>", world)
+                .replace("<duration>", duration)
                 .replaceAll("<[^>]+>", "");
     }
 
     public TagResolver locationResolvers(String player, Location location) {
+        return locationResolvers(player, location, "");
+    }
+
+    public TagResolver locationResolvers(String player, Location location, String duration) {
         return TagResolver.resolver(
                 Placeholder.unparsed("player", player),
                 Placeholder.unparsed("x", Integer.toString(location.getBlockX())),
                 Placeholder.unparsed("y", Integer.toString(location.getBlockY())),
                 Placeholder.unparsed("z", Integer.toString(location.getBlockZ())),
-                Placeholder.unparsed("world", location.getWorld() == null ? "unknown" : location.getWorld().getName())
+                Placeholder.unparsed("world", location.getWorld() == null ? "unknown" : location.getWorld().getName()),
+                Placeholder.unparsed("duration", duration)
         );
     }
 }
