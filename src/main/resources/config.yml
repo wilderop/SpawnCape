@@ -17,6 +17,12 @@ broadcast-interval-seconds: 300
 
 reach-bonus: 1.0
 
+# How the cape starts/keeps elytra flight without a chest elytra.
+# force  = start/keep glide every tick (most reliable, can jitter)
+# jump   = start like a real elytra (jump again in the air)
+# assist = jump to start, plus a slow rescue if they are falling
+glide-mode: force
+
 discord-webhook: ""
 
 # After a reboot/crash, the last holder can reclaim the cape this many seconds
@@ -45,6 +51,9 @@ messages:
   muted: "You will no longer see Spawn Cape broadcasts."
   unmuted: "You will now see Spawn Cape broadcasts."
   reloaded: "Spawn Cape config reloaded."
+  glide-mode: "Glide mode is <mode>."
+  glide-set: "Glide mode set to <mode>."
+  glide-usage: "Usage: /cape glide <force|jump|assist>"
   no-permission: "You must be an operator to do that."
   returned: "The Spawn Cape returned to spawn."
   received: "You now hold the Spawn Cape."
