@@ -37,6 +37,12 @@ hold-reward:
   amount: 2
   material: OBSIDIAN
 
+# Banked while the cape is held. Paid only if another player kills the holder.
+kill-prize:
+  interval-seconds: 3600
+  amount: 1
+  material: ANCIENT_DEBRIS
+
 item:
   name: "<gold><bold>Spawn Cape"
   material: ELYTRA
@@ -44,8 +50,8 @@ item:
 
 messages:
   prefix: "<dark_gray>[<gold>Spawn Cape</gold>]</dark_gray> "
-  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>. Type <yellow>/cape off</yellow> to hide these messages."
-  location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>."
+  broadcast: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>. Kill prize: <prize> <prize-name>. Type <yellow>/cape off</yellow> to hide these messages."
+  location-held: "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>. They have held it for <duration>. Kill prize: <prize> <prize-name>."
   location-ground: "The Spawn Cape is at <x>, <y>, <z> in <world>."
   hint: "Type <yellow>/cape off</yellow> to hide cape messages, or <yellow>/cape help</yellow> for more info."
   muted: "You will no longer see Spawn Cape broadcasts."
@@ -61,6 +67,7 @@ messages:
   keepsake: "You earned a Spawn Cape Keepsake for holding it for <duration>."
   grace-restored: "The Spawn Cape returned to you after the restart."
   cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
+  prize-claimed: "You claimed <prize> <prize-name> from the Spawn Cape holder."
   help:
     - "<gold><bold>Spawn Cape</bold></gold>"
     - "There is only one. It sits at spawn until someone picks it up."
@@ -72,6 +79,7 @@ messages:
     - "Logout also returns it to spawn. A reboot gives you 5 minutes to rejoin and keep your hold time."
     - "Hold it long enough to earn a cosmetic Spawn Cape Keepsake for each milestone, once each."
     - "Every minute you hold it, you get 2 obsidian. Extra drops at your feet if your inventory is full."
+    - "Every hour you hold it banks 1 ancient debris. Only a player who kills you gets that prize. Logout, bounds, and other losses pay nothing."
     - "Its location is broadcast every 5 minutes while someone holds it."
     - "<yellow>/cape</yellow> — current location"
     - "<yellow>/cape off</yellow> — hide broadcasts"
