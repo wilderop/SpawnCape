@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.List;
+import java.util.Locale;
 
 public final class ConfigManager {
 
@@ -40,6 +41,9 @@ public final class ConfigManager {
     private long holdRewardIntervalSeconds;
     private int holdRewardAmount;
     private Material holdRewardMaterial;
+    private long killPrizeIntervalSeconds;
+    private int killPrizeAmount;
+    private Material killPrizeMaterial;
     private GlideMode glideMode;
 
     public ConfigManager(SpawnCapePlugin plugin) {
@@ -79,6 +83,10 @@ public final class ConfigManager {
         holdRewardAmount = Math.max(0, cfg.getInt("hold-reward.amount", 2));
         Material reward = Material.matchMaterial(cfg.getString("hold-reward.material", "OBSIDIAN"));
         holdRewardMaterial = reward == null ? Material.OBSIDIAN : reward;
+        killPrizeIntervalSeconds = Math.max(0L, cfg.getLong("kill-prize.interval-seconds", 3600L));
+        killPrizeAmount = Math.max(0, cfg.getInt("kill-prize.amount", 1));
+        Material prize = Material.matchMaterial(cfg.getString("kill-prize.material", "ANCIENT_DEBRIS"));
+        killPrizeMaterial = prize == null ? Material.ANCIENT_DEBRIS : prize;
         GlideMode parsed = GlideMode.parse(cfg.getString("glide-mode", "force"));
         glideMode = parsed == null ? GlideMode.FORCE : parsed;
     }
@@ -166,6 +174,22 @@ public final class ConfigManager {
         return holdRewardMaterial;
     }
 
+    public long killPrizeIntervalSeconds() {
+        return killPrizeIntervalSeconds;
+    }
+
+    public int killPrizeAmount() {
+        return killPrizeAmount;
+    }
+
+    public Material killPrizeMaterial() {
+        return killPrizeMaterial;
+    }
+
+    public String killPrizeName() {
+        return killPrizeMaterial.name().toLowerCase(Locale.ROOT).replace('_', ' ');
+    }
+
     public GlideMode glideMode() {
         return glideMode;
     }
@@ -192,7 +216,7 @@ public final class ConfigManager {
         }
     }
 
-    public String plainBroadcast(String player, int x, int y, int z, String world, String duration) {
+    public String plainBroadcast(String player, int x, int y, int z, String world, String duration, String prize, String prizeName) {
         return broadcastTemplate
                 .replace("<player>", player)
                 .replace("<x>", Integer.toString(x))
@@ -200,21 +224,29 @@ public final class ConfigManager {
                 .replace("<z>", Integer.toString(z))
                 .replace("<world>", world)
                 .replace("<duration>", duration)
+                .replace("<prize>", prize)
+                .replace("<prize-name>", prizeName)
                 .replaceAll("<[^>]+>", "");
     }
 
     public TagResolver locationResolvers(String player, Location location) {
-        return locationResolvers(player, location, "");
+        return locationResolvers(player, location, "", "0", killPrizeName());
     }
 
     public TagResolver locationResolvers(String player, Location location, String duration) {
+        return locationResolvers(player, location, duration, "0", killPrizeName());
+    }
+
+    public TagResolver locationResolvers(String player, Location location, String duration, String prize, String prizeName) {
         return TagResolver.resolver(
                 Placeholder.unparsed("player", player),
                 Placeholder.unparsed("x", Integer.toString(location.getBlockX())),
                 Placeholder.unparsed("y", Integer.toString(location.getBlockY())),
                 Placeholder.unparsed("z", Integer.toString(location.getBlockZ())),
                 Placeholder.unparsed("world", location.getWorld() == null ? "unknown" : location.getWorld().getName()),
-                Placeholder.unparsed("duration", duration)
+                Placeholder.unparsed("duration", duration),
+                Placeholder.unparsed("prize", prize),
+                Placeholder.unparsed("prize-name", prizeName)
         );
     }
 }
