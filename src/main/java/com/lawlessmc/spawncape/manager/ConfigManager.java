@@ -216,6 +216,10 @@ public final class ConfigManager {
         }
     }
 
+    public String plainBroadcast(String player, int x, int y, int z, String world, String duration) {
+        return plainBroadcast(player, x, y, z, world, duration, "0", killPrizeName());
+    }
+
     public String plainBroadcast(String player, int x, int y, int z, String world, String duration, String prize, String prizeName) {
         return broadcastTemplate
                 .replace("<player>", player)
