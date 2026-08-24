@@ -688,19 +688,6 @@ public final class CapeManager {
     public void removeFromInventory(Player player) {
         PlayerInventory inventory = player.getInventory();
         if (plugin.capeItem().isCape(inventory.getItemInOffHand())) {
-            return inventory.getItemInOffHand();
-        }
-        for (ItemStack stack : inventory.getStorageContents()) {
-            if (plugin.capeItem().isCape(stack)) {
-                return stack;
-            }
-        }
-        return null;
-    }
-
-    public void removeFromInventory(Player player) {
-        PlayerInventory inventory = player.getInventory();
-        if (plugin.capeItem().isCape(inventory.getItemInOffHand())) {
             inventory.setItemInOffHand(null);
         }
         ItemStack[] contents = inventory.getStorageContents();
@@ -837,7 +824,7 @@ public final class CapeManager {
         return days + "d " + hours + "h " + minutes + "m";
     }
 
-    private static boolean exceeds(double x, double y, double z, limit) {
+    private static boolean exceeds(double x, double y, double z, double limit) {
         return Math.abs(x) > limit || Math.abs(y) > limit || Math.abs(z) > limit;
     }
 }
