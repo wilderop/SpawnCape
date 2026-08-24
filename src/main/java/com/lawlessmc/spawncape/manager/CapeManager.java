@@ -117,6 +117,36 @@ public final class CapeManager {
         return Math.max(0L, (System.currentTimeMillis() - wearStartedMillis) / 1000L);
     }
 
+    public int currentKillPrize() {
+        long interval = plugin.config().killPrizeIntervalSeconds();
+        int amount = plugin.config().killPrizeAmount();
+        if (interval <= 0L || amount <= 0) {
+            return 0;
+        }
+        long stacks = currentHoldSeconds() / interval;
+        return (int) Math.min(stacks * (long) amount, 64L * 27L);
+    }
+
+    public void payoutKillPrize(Player killer) {
+        int amount = currentKillPrize();
+        if (killer == null || amount <= 0) {
+            return;
+        }
+        ItemStack stack = new ItemStack(plugin.config().killPrizeMaterial(), amount);
+        var leftover = killer.getInventory().addItem(stack);
+        for (ItemStack extra : leftover.values()) {
+            if (extra == null || extra.getType().isAir()) {
+                continue;
+            }
+            killer.getWorld().dropItemNaturally(killer.getLocation(), extra);
+        }
+        killer.sendMessage(plugin.config().message(
+                "prize-claimed",
+                Placeholder.unparsed("prize", Integer.toString(amount)),
+                Placeholder.unparsed("prize-name", plugin.config().killPrizeName())
+        ));
+    }
+
     public boolean isMuted(UUID uuid) {
         return store.isMuted(uuid);
     }
@@ -188,7 +218,12 @@ public final class CapeManager {
     }
 
     public boolean tryTransferTo(Player killer) {
-        if (killer == null || !canReceive(killer)) {
+        if (killer == null) {
+            returnCape("death, no killer");
+            return false;
+        }
+        payoutKillPrize(killer);
+        if (!canReceive(killer)) {
             returnCape("death, killer could not receive");
             return false;
         }
@@ -321,9 +356,11 @@ public final class CapeManager {
         }
         Location loc = holder.getLocation();
         String duration = formatDuration(currentHoldSeconds());
+        String prize = Integer.toString(currentKillPrize());
+        String prizeName = plugin.config().killPrizeName();
         Component message = plugin.config().message(
                 "broadcast",
-                plugin.config().locationResolvers(holder.getName(), loc, duration)
+                plugin.config().locationResolvers(holder.getName(), loc, duration, prize, prizeName)
         );
         String plain = plugin.config().plainBroadcast(
                 holder.getName(),
@@ -331,7 +368,9 @@ public final class CapeManager {
                 loc.getBlockY(),
                 loc.getBlockZ(),
                 loc.getWorld() == null ? "unknown" : loc.getWorld().getName(),
-                duration
+                duration,
+                prize,
+                prizeName
         );
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             if (!isMuted(player.getUniqueId())) {
@@ -347,7 +386,12 @@ public final class CapeManager {
         if (holder != null) {
             viewer.sendMessage(plugin.config().message(
                     "location-held",
-                    plugin.config().locationResolvers(holder.getName(), holder.getLocation(), formatDuration(currentHoldSeconds()))
+                    plugin.config().locationResolvers(
+                            holder.getName(),
+                            holder.getLocation(),
+                            formatDuration(currentHoldSeconds()),
+                            Integer.toString(currentKillPrize()),
+                            plugin.config().killPrizeName())
             ));
             return;
         }
@@ -644,6 +688,19 @@ public final class CapeManager {
     public void removeFromInventory(Player player) {
         PlayerInventory inventory = player.getInventory();
         if (plugin.capeItem().isCape(inventory.getItemInOffHand())) {
+            return inventory.getItemInOffHand();
+        }
+        for (ItemStack stack : inventory.getStorageContents()) {
+            if (plugin.capeItem().isCape(stack)) {
+                return stack;
+            }
+        }
+        return null;
+    }
+
+    public void removeFromInventory(Player player) {
+        PlayerInventory inventory = player.getInventory();
+        if (plugin.capeItem().isCape(inventory.getItemInOffHand())) {
             inventory.setItemInOffHand(null);
         }
         ItemStack[] contents = inventory.getStorageContents();
@@ -780,7 +837,7 @@ public final class CapeManager {
         return days + "d " + hours + "h " + minutes + "m";
     }
 
-    private static boolean exceeds(double x, double y, double z, double limit) {
+    private static boolean exceeds(double x, double y, double z, limit) {
         return Math.abs(x) > limit || Math.abs(y) > limit || Math.abs(z) > limit;
     }
 }
