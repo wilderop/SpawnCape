@@ -3,10 +3,13 @@ package com.lawlessmc.spawncape.listener;
 import com.lawlessmc.spawncape.SpawnCapePlugin;
 import com.lawlessmc.spawncape.manager.CapeManager;
 import org.bukkit.Location;
+import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -32,9 +35,15 @@ import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 public final class CapeListener implements Listener {
 
     private final SpawnCapePlugin plugin;
+    /** Last player to damage an end crystal — used when the crystal explodes. */
+    private final Map<UUID, UUID> crystalAttackers = new ConcurrentHashMap<>();
 
     public CapeListener(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -278,6 +287,18 @@ public final class CapeListener implements Listener {
         plugin.getServer().getScheduler().runTask(plugin, () -> manager().ensureSpawnItem());
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCrystalDamaged(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof EnderCrystal crystal)) {
+            return;
+        }
+        Player attacker = playerFrom(event.getDamager());
+        if (attacker == null) {
+            return;
+        }
+        crystalAttackers.put(crystal.getUniqueId(), attacker.getUniqueId());
+    }
+
     private static boolean isUnavoidable(EntityDamageEvent.DamageCause cause) {
         return switch (cause) {
             case VOID, KILL, SUICIDE, WORLD_BORDER -> true;
@@ -285,13 +306,28 @@ public final class CapeListener implements Listener {
         };
     }
 
-    private static Player resolveKiller(EntityDamageEvent event, Player victim) {
+    private Player resolveKiller(EntityDamageEvent event, Player victim) {
         if (event instanceof EntityDamageByEntityEvent byEntity) {
             Player fromDamager = playerFrom(byEntity.getDamager());
             if (fromDamager != null && !fromDamager.getUniqueId().equals(victim.getUniqueId())) {
                 return fromDamager;
             }
         }
+
+        try {
+            var source = event.getDamageSource();
+            Player fromCausing = playerFrom(source.getCausingEntity());
+            if (fromCausing != null && !fromCausing.getUniqueId().equals(victim.getUniqueId())) {
+                return fromCausing;
+            }
+            Player fromDirect = playerFrom(source.getDirectEntity());
+            if (fromDirect != null && !fromDirect.getUniqueId().equals(victim.getUniqueId())) {
+                return fromDirect;
+            }
+        } catch (Throwable ignored) {
+            // Older API without DamageSource helpers.
+        }
+
         Player listed = victim.getKiller();
         if (listed != null && !listed.getUniqueId().equals(victim.getUniqueId())) {
             return listed;
@@ -299,12 +335,30 @@ public final class CapeListener implements Listener {
         return null;
     }
 
-    private static Player playerFrom(Entity entity) {
+    private Player playerFrom(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
         if (entity instanceof Player player) {
             return player;
         }
         if (entity instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
             return player;
+        }
+        if (entity instanceof Firework firework && firework.getShooter() instanceof Player player) {
+            return player;
+        }
+        if (entity instanceof TNTPrimed tnt && tnt.getSource() instanceof Player player) {
+            return player;
+        }
+        if (entity instanceof EnderCrystal crystal) {
+            UUID attackerId = crystalAttackers.remove(crystal.getUniqueId());
+            if (attackerId != null) {
+                Player attacker = plugin.getServer().getPlayer(attackerId);
+                if (attacker != null) {
+                    return attacker;
+                }
+            }
         }
         return null;
     }
