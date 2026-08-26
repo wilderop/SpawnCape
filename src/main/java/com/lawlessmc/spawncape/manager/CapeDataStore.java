@@ -92,20 +92,28 @@ public final class CapeDataStore {
         return yaml.getString("wear." + uuid + ".name", "Unknown");
     }
 
-    public void addWearTime(UUID uuid, String name, long extraSeconds) {
-        if (uuid == null || extraSeconds <= 0L) {
+    /**
+     * Records the end of a single continuous hold session.
+     * Lore "longest" is the longest single stretch, not lifetime total.
+     */
+    public void addWearTime(UUID uuid, String name, long sessionSeconds) {
+        if (uuid == null || sessionSeconds <= 0L) {
             return;
         }
         String path = "wear." + uuid;
-        long current = yaml.getLong(path + ".seconds", 0L);
-        long total = current + extraSeconds;
-        yaml.set(path + ".seconds", total);
         yaml.set(path + ".name", name);
-        if (cachedLongest == null || total > cachedLongest.seconds()) {
-            cachedLongest = new WearRecord(uuid, name, total);
+        // Optional lifetime total for stats; lore does not use this.
+        long lifetime = yaml.getLong(path + ".seconds", 0L) + sessionSeconds;
+        yaml.set(path + ".seconds", lifetime);
+        // Best single continuous hold for this player.
+        long bestSession = Math.max(yaml.getLong(path + ".best-session", 0L), sessionSeconds);
+        yaml.set(path + ".best-session", bestSession);
+        // Global longest single stretch on the cape.
+        if (cachedLongest == null || sessionSeconds > cachedLongest.seconds()) {
+            cachedLongest = new WearRecord(uuid, name, sessionSeconds);
             yaml.set("longest.uuid", uuid.toString());
             yaml.set("longest.name", name);
-            yaml.set("longest.seconds", total);
+            yaml.set("longest.seconds", sessionSeconds);
         }
         queueSave();
     }
@@ -205,7 +213,11 @@ public final class CapeDataStore {
         for (String key : section.getKeys(false)) {
             try {
                 UUID uuid = UUID.fromString(key);
-                long seconds = yaml.getLong("wear." + key + ".seconds", 0L);
+                // Prefer best single session; fall back to lifetime only for old data.
+                long seconds = yaml.getLong("wear." + key + ".best-session", 0L);
+                if (seconds <= 0L) {
+                    seconds = yaml.getLong("wear." + key + ".seconds", 0L);
+                }
                 String name = yaml.getString("wear." + key + ".name", "Unknown");
                 if (best == null || seconds > best.seconds()) {
                     best = new WearRecord(uuid, name, seconds);
