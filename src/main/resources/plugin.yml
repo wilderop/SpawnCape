@@ -6,6 +6,9 @@ description: Unique offhand Spawn Cape that broadcasts location and returns to s
 author: wilderop
 website: https://github.com/wilderop/SpawnCape
 folia-supported: false
+# Quit runs at LOWEST and must strip the cape before PlayerDataSync snapshots inventory.
+loadbefore:
+  - PlayerDataSyncReloaded
 
 commands:
   cape:

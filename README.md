@@ -11,7 +11,7 @@ A Paper 26.2 plugin that adds a single unique **Spawn Cape**. The cape lives in 
 - Right-click boosts like a firework rocket. No rockets are consumed.
 - +1 block and entity reach while it is in the offhand.
 - Gliding is forced whenever the holder is in the air.
-- Overworld: any axis outside `-1000` to `1000` returns it to spawn.
+- Overworld: any axis outside `-1000` to `1000` returns it to spawn. The holder is warned in the last 100 blocks (chat once, action bar while close).
 - Nether: any axis outside `-250` to `250` returns it.
 - End and custom worlds: the player can enter, the cape immediately returns to overworld spawn.
 - Death: the killer receives it if they have space, otherwise it returns to spawn.

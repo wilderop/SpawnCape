@@ -2,7 +2,6 @@ package com.lawlessmc.spawncape.listener;
 
 import com.lawlessmc.spawncape.SpawnCapePlugin;
 import com.lawlessmc.spawncape.manager.CapeManager;
-import org.bukkit.Location;
 import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
@@ -17,6 +16,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.event.entity.EntityPortalEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -228,32 +228,37 @@ public final class CapeListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onQuit(PlayerQuitEvent event) {
-        if (!manager().isHolder(event.getPlayer())) {
+        Player player = event.getPlayer();
+        if (!manager().isHolder(player)) {
+            // Drop leftover copies so PlayerDataSync / player.dat cannot restore them later.
+            manager().removeFromInventory(player);
             return;
         }
         if (plugin.getServer().isStopping()) {
-            manager().saveForReboot();
-            return;
+            manager().beginRebootGrace();
+        } else {
+            manager().beginReconnectGrace();
         }
-        manager().returnCape("logout");
+        manager().removeFromInventory(player);
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        manager().handlePlayerJoin(player);
+        // PlayerDataSync applies SQL inventory on a later tick; strip/restore again after that.
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            Player player = event.getPlayer();
-            manager().stripCapeFromEnderChest(player);
-            if (manager().tryRestoreAfterReboot(player)) {
-                return;
-            }
-            if (manager().isHolder(player)) {
-                manager().enforceOffhand(player);
-            } else if (manager().findCapeInInventory(player) != null) {
-                manager().removeFromInventory(player);
+            if (player.isOnline()) {
+                manager().handlePlayerJoin(player);
             }
         });
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                manager().handlePlayerJoin(player);
+            }
+        }, 20L);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -261,30 +266,31 @@ public final class CapeListener implements Listener {
         Item item = event.getEntity();
         if (plugin.capeItem().isKeepsake(item.getItemStack())) {
             manager().styleKeepsakeItem(item);
+            return;
+        }
+        if (plugin.capeItem().isCape(item.getItemStack()) && manager().holderId() != null) {
+            item.remove();
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onItemDespawn(ItemDespawnEvent event) {
-        if (plugin.capeItem().isKeepsake(event.getEntity().getItemStack())) {
+        ItemStack stack = event.getEntity().getItemStack();
+        if (plugin.capeItem().isKeepsake(stack) || plugin.capeItem().isCape(stack)) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPortal(EntityPortalEvent event) {
+        if (event.getEntity() instanceof Item item && plugin.capeItem().isCape(item.getItemStack())) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent event) {
-        Location spawn = plugin.config().returnLocation();
-        if (spawn.getWorld() == null || !event.getWorld().equals(spawn.getWorld())) {
-            return;
-        }
-        if (event.getChunk().getX() != plugin.config().returnChunkX()
-                || event.getChunk().getZ() != plugin.config().returnChunkZ()) {
-            return;
-        }
-        if (manager().holderId() != null) {
-            return;
-        }
-        plugin.getServer().getScheduler().runTask(plugin, () -> manager().ensureSpawnItem());
+        plugin.getServer().getScheduler().runTask(plugin, () -> manager().handleChunkLoad(event.getChunk()));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

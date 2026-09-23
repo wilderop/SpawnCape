@@ -6,7 +6,7 @@
 
     <groupId>com.lawlessmc</groupId>
     <artifactId>spawncape</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.7</version>
     <packaging>jar</packaging>
     <name>SpawnCape</name>
     <description>A unique offhand Spawn Cape that rewards staying near spawn.</description>

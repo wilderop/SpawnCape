@@ -1,6 +1,9 @@
 package com.lawlessmc.spawncape.manager;
 
 import com.lawlessmc.spawncape.SpawnCapePlugin;
+import org.bukkit.Location;
+import org.bukkit.Server;
+import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -69,6 +72,15 @@ public final class CapeDataStore {
         return yaml.getLong("wear-started", 0L);
     }
 
+    public long graceUntilMillis() {
+        return yaml.getLong("grace-until", 0L);
+    }
+
+    public void setGraceUntil(long millis) {
+        yaml.set("grace-until", millis <= 0L ? 0L : millis);
+        queueSave();
+    }
+
     public UUID groundItemId() {
         return groundItemId;
     }
@@ -79,9 +91,44 @@ public final class CapeDataStore {
         queueSave();
     }
 
+    public Location groundLocation(Server server) {
+        String worldName = yaml.getString("ground-world");
+        if (worldName == null || worldName.isBlank() || !yaml.contains("ground-x")) {
+            return null;
+        }
+        World world = server.getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+        return new Location(
+                world,
+                yaml.getDouble("ground-x"),
+                yaml.getDouble("ground-y"),
+                yaml.getDouble("ground-z")
+        );
+    }
+
+    public void setGroundLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            yaml.set("ground-world", null);
+            yaml.set("ground-x", null);
+            yaml.set("ground-y", null);
+            yaml.set("ground-z", null);
+        } else {
+            yaml.set("ground-world", location.getWorld().getName());
+            yaml.set("ground-x", location.getX());
+            yaml.set("ground-y", location.getY());
+            yaml.set("ground-z", location.getZ());
+        }
+        queueSave();
+    }
+
     public void saveHolder(UUID holder, long wearStartedMillis) {
         yaml.set("holder", holder == null ? null : holder.toString());
         yaml.set("wear-started", holder == null ? 0L : wearStartedMillis);
+        if (holder == null) {
+            yaml.set("grace-until", 0L);
+        }
         queueSave();
     }
 

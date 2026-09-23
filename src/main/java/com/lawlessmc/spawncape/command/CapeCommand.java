@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 public final class CapeCommand implements CommandExecutor, TabCompleter {
 
@@ -32,20 +33,22 @@ public final class CapeCommand implements CommandExecutor, TabCompleter {
         switch (sub) {
             case "help" -> plugin.config().sendHelp(sender);
             case "off" -> {
-                if (!(sender instanceof Player player)) {
+                UUID actor = actor(sender);
+                if (actor == null) {
                     sender.sendMessage("Players only.");
                     return true;
                 }
-                plugin.capeManager().setMuted(player.getUniqueId(), true);
-                player.sendMessage(plugin.config().message("muted"));
+                plugin.capeManager().setMuted(actor, true);
+                sender.sendMessage(plugin.config().message("muted"));
             }
             case "on" -> {
-                if (!(sender instanceof Player player)) {
+                UUID actor = actor(sender);
+                if (actor == null) {
                     sender.sendMessage("Players only.");
                     return true;
                 }
-                plugin.capeManager().setMuted(player.getUniqueId(), false);
-                player.sendMessage(plugin.config().message("unmuted"));
+                plugin.capeManager().setMuted(actor, false);
+                sender.sendMessage(plugin.config().message("unmuted"));
             }
             case "reload" -> {
                 if (!sender.isOp()) {
@@ -99,5 +102,18 @@ public final class CapeCommand implements CommandExecutor, TabCompleter {
                     .toList();
         }
         return List.of();
+    }
+
+    /** Player, or a remote Fabric sender that exposes {@code uuid()}. */
+    private static UUID actor(CommandSender sender) {
+        if (sender instanceof Player player) {
+            return player.getUniqueId();
+        }
+        try {
+            Object o = sender.getClass().getMethod("uuid").invoke(sender);
+            if (o instanceof UUID uuid) return uuid;
+        } catch (ReflectiveOperationException ignored) {
+        }
+        return null;
     }
 }

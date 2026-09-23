@@ -13,6 +13,14 @@ return:
 overworld-limit: 1000
 nether-limit: 250
 
+# Warn the holder when they are this many blocks from any axis limit.
+bounds-warn-blocks: 100
+
+# When the cape vanishes, Slow Falling if the holder has this much air under them.
+# Vanilla unarmored fatal fall is 23 blocks. 0 disables.
+slow-fall-blocks: 20
+slow-fall-seconds: 20
+
 broadcast-interval-seconds: 300
 
 reach-bonus: 1.0
@@ -28,6 +36,10 @@ discord-webhook: ""
 # After a reboot/crash, the last holder can reclaim the cape this many seconds
 # after the plugin enables and keep their current hold timer.
 reboot-grace-seconds: 300
+
+# After any disconnect (proxy restart, lag, logout), wait this many seconds
+# for the holder to rejoin before the cape returns to spawn. 0 = instant drop.
+reconnect-grace-seconds: 60
 
 keepsake-name: "<gold>Spawn Cape Keepsake"
 
@@ -68,15 +80,18 @@ messages:
   grace-restored: "The Spawn Cape returned to you after the restart."
   cannot-pickup: "You need an empty inventory slot to take the Spawn Cape."
   prize-claimed: "You claimed <prize> <prize-name> from the Spawn Cape holder."
+  bounds-warn: "<red><bold>Cape vanishing</bold></red>"
+  bounds-warn-subtitle: "<gold><remaining> blocks left</gold> <gray>(<axis>)</gray>"
   help:
     - "<gold><bold>Spawn Cape</bold></gold>"
     - "There is only one. It sits at spawn until someone picks it up."
     - "It locks into your offhand: fly like an elytra, right-click to boost without rockets, and gain +1 reach."
-    - "Overworld: if any axis is outside -1000 to 1000, it returns to spawn."
-    - "Nether: if any axis is outside -250 to 250, it returns to spawn."
+    - "Overworld: if any axis is outside -1000 to 1000, it returns to spawn. A full-screen title warns you in the last 100 blocks."
+    - "Nether: if any axis is outside -250 to 250, it returns to spawn. Same 100-block title warning."
+    - "If the cape vanishes while you are 20 or more blocks off the ground, you get 20 seconds of Slow Falling."
     - "End and other worlds: you can enter, but the cape returns to overworld spawn."
     - "If you would die, it pops like a totem and your killer gets the cape. Void and /kill still kill you."
-    - "Logout also returns it to spawn. A reboot gives you 5 minutes to rejoin and keep your hold time."
+    - "If you disconnect, you have 60 seconds to rejoin and keep the cape. A survival reboot gives you 5 minutes."
     - "Hold it long enough to earn a cosmetic Spawn Cape Keepsake for each milestone, once each."
     - "Every minute you hold it, you get 2 obsidian. Extra drops at your feet if your inventory is full."
     - "Every hour you hold it banks 1 ancient debris. Only a player who kills you gets that prize. Logout, bounds, and other losses pay nothing."

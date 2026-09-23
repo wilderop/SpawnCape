@@ -37,6 +37,7 @@ public final class ConfigManager {
     private Component prefix;
     private String broadcastTemplate;
     private long rebootGraceSeconds;
+    private long reconnectGraceSeconds;
     private Component keepsakeName;
     private long holdRewardIntervalSeconds;
     private int holdRewardAmount;
@@ -45,6 +46,9 @@ public final class ConfigManager {
     private int killPrizeAmount;
     private Material killPrizeMaterial;
     private GlideMode glideMode;
+    private double boundsWarnBlocks;
+    private double slowFallBlocks;
+    private int slowFallSeconds;
 
     public ConfigManager(SpawnCapePlugin plugin) {
         this.plugin = plugin;
@@ -78,6 +82,7 @@ public final class ConfigManager {
                 "<player> has the fabled Spawn Cape and is at <x>, <y>, <z> in <world>."
         );
         rebootGraceSeconds = Math.max(0L, cfg.getLong("reboot-grace-seconds", 300L));
+        reconnectGraceSeconds = Math.max(0L, cfg.getLong("reconnect-grace-seconds", 60L));
         keepsakeName = miniMessage.deserialize(cfg.getString("keepsake-name", "<gold>Spawn Cape Keepsake"));
         holdRewardIntervalSeconds = Math.max(0L, cfg.getLong("hold-reward.interval-seconds", 60L));
         holdRewardAmount = Math.max(0, cfg.getInt("hold-reward.amount", 2));
@@ -89,6 +94,9 @@ public final class ConfigManager {
         killPrizeMaterial = prize == null ? Material.ANCIENT_DEBRIS : prize;
         GlideMode parsed = GlideMode.parse(cfg.getString("glide-mode", "force"));
         glideMode = parsed == null ? GlideMode.FORCE : parsed;
+        boundsWarnBlocks = Math.max(0.0, cfg.getDouble("bounds-warn-blocks", 100.0));
+        slowFallBlocks = Math.max(0.0, cfg.getDouble("slow-fall-blocks", 20.0));
+        slowFallSeconds = Math.max(0, cfg.getInt("slow-fall-seconds", 20));
     }
 
     public String overworldName() {
@@ -158,6 +166,10 @@ public final class ConfigManager {
         return rebootGraceSeconds;
     }
 
+    public long reconnectGraceSeconds() {
+        return reconnectGraceSeconds;
+    }
+
     public Component keepsakeName() {
         return keepsakeName;
     }
@@ -194,6 +206,18 @@ public final class ConfigManager {
         return glideMode;
     }
 
+    public double boundsWarnBlocks() {
+        return boundsWarnBlocks;
+    }
+
+    public double slowFallBlocks() {
+        return slowFallBlocks;
+    }
+
+    public int slowFallSeconds() {
+        return slowFallSeconds;
+    }
+
     public void setGlideMode(GlideMode mode) {
         this.glideMode = mode == null ? GlideMode.FORCE : mode;
         plugin.getConfig().set("glide-mode", glideMode.configName());
@@ -201,8 +225,28 @@ public final class ConfigManager {
     }
 
     public Component message(String path, TagResolver... resolvers) {
-        String raw = plugin.getConfig().getString("messages." + path, path);
+        String raw = plugin.getConfig().getString("messages." + path);
+        if (raw == null || raw.isBlank()) {
+            raw = defaultMessage(path);
+        }
         return prefix.append(miniMessage.deserialize(raw, resolvers));
+    }
+
+    public Component rawMessage(String path, TagResolver... resolvers) {
+        String raw = plugin.getConfig().getString("messages." + path);
+        if (raw == null || raw.isBlank()) {
+            raw = defaultMessage(path);
+        }
+        return miniMessage.deserialize(raw, resolvers);
+    }
+
+    private static String defaultMessage(String path) {
+        return switch (path) {
+            case "bounds-warn" -> "<red><bold>Cape vanishing</bold></red>";
+            case "bounds-warn-subtitle" ->
+                    "<gold><remaining> blocks left</gold> <gray>(<axis>)</gray>";
+            default -> path;
+        };
     }
 
     public void sendHelp(CommandSender sender) {
