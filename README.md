@@ -1,3 +1,6 @@
+<!-- azpbmd-live -->
+**Live:** survival
+<!-- /azpbmd-live -->
 # SpawnCape
 
 A Paper 26.2 plugin that adds a single unique **Spawn Cape**. The cape lives in the offhand, lets the holder glide like they are wearing an elytra, and broadcasts their coordinates so players have a reason to hang around spawn.
